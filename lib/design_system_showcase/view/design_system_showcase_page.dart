@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:my_app/design_system/design_system.dart';
+import 'dart:ui';
+import '../../design_system/design_system.dart';
+
+class ShowcaseTab {
+  final String label;
+  final IconData icon;
+
+  ShowcaseTab(this.label, this.icon);
+}
 
 class DesignSystemShowcasePage extends StatefulWidget {
   const DesignSystemShowcasePage({super.key});
@@ -13,27 +21,12 @@ class DesignSystemShowcasePage extends StatefulWidget {
 class _DesignSystemShowcasePageState extends State<DesignSystemShowcasePage> {
   int _selectedIndex = 0;
 
-  final List<AppNavigationDestination> _destinations = [
-    AppNavigationDestination(
-      icon: Icon(Icons.widgets_outlined),
-      selectedIcon: Icon(Icons.widgets),
-      label: 'Components',
-    ),
-    AppNavigationDestination(
-      icon: Icon(Icons.palette_outlined),
-      selectedIcon: Icon(Icons.palette),
-      label: 'Colors',
-    ),
-    AppNavigationDestination(
-      icon: Icon(Icons.text_fields_outlined),
-      selectedIcon: Icon(Icons.text_fields),
-      label: 'Typography',
-    ),
-    AppNavigationDestination(
-      icon: Icon(Icons.tune_outlined),
-      selectedIcon: Icon(Icons.tune),
-      label: 'Settings',
-    ),
+  final List<ShowcaseTab> _tabs = [
+    ShowcaseTab('Components', Icons.widgets_rounded),
+    ShowcaseTab('Glass Effects', Icons.auto_awesome_rounded),
+    ShowcaseTab('Colors', Icons.palette_rounded),
+    ShowcaseTab('Typography', Icons.text_fields_rounded),
+    ShowcaseTab('Settings', Icons.tune_rounded),
   ];
 
   @override
@@ -41,26 +34,26 @@ class _DesignSystemShowcasePageState extends State<DesignSystemShowcasePage> {
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: context.colorScheme.surface,
-        surfaceTintColor: context.colorScheme.surfaceTint,
         title: Text(
-          'Design System',
-          style: context.textTheme.headlineSmall?.copyWith(
+          'Material 3 Design System',
+          style: context.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
-        centerTitle: false,
+        backgroundColor: context.colorScheme.surface,
+        elevation: 0,
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: context.colorScheme.surfaceContainerHighest,
+              color: context.colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(20),
             ),
             child: BlocBuilder<ThemeCubit, ThemeState>(
               builder: (context, state) {
                 return IconButton(
+                  tooltip: 'Toggle theme',
+                  onPressed: () => context.read<ThemeCubit>().toggleTheme(),
                   icon: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     child: Icon(
@@ -68,44 +61,457 @@ class _DesignSystemShowcasePageState extends State<DesignSystemShowcasePage> {
                           ? Icons.dark_mode_rounded
                           : Icons.light_mode_rounded,
                       key: ValueKey(state.themeMode),
+                      color: context.colorScheme.onPrimaryContainer,
                     ),
                   ),
-                  onPressed: () {
-                    context.read<ThemeCubit>().toggleTheme();
-                  },
-                  tooltip: state.themeMode == ThemeMode.light
-                      ? 'Switch to dark mode'
-                      : 'Switch to light mode',
                 );
               },
             ),
           ),
         ],
       ),
-      body: ResponsiveWrapper(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          switchInCurve: Curves.easeInOut,
-          switchOutCurve: Curves.easeInOut,
-          child: [
-            const ComponentsShowcase(),
-            const ColorsShowcase(),
-            const TypographyShowcase(),
-            const SettingsShowcase(),
-          ][_selectedIndex],
-        ),
-      ),
-      bottomNavigationBar: AppNavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: _destinations,
+      body: Column(
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: _tabs.asMap().entries.map((entry) {
+                final index = entry.key;
+                final tab = entry.value;
+                final isSelected = _selectedIndex == index;
+
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ElevatedButton.icon(
+                    onPressed: () => setState(() => _selectedIndex = index),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isSelected
+                          ? context.colorScheme.primary
+                          : context.colorScheme.surfaceContainer,
+                      foregroundColor: isSelected
+                          ? context.colorScheme.onPrimary
+                          : context.colorScheme.onSurfaceVariant,
+                      elevation: isSelected ? 2 : 0,
+                    ),
+                    icon: Icon(tab.icon, size: 18),
+                    label: Text(tab.label),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: _getShowcaseContent(_selectedIndex),
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  Widget _getShowcaseContent(int index) {
+    switch (index) {
+      case 0:
+        return const ComponentsShowcase(key: ValueKey('components'));
+      case 1:
+        return const LiquidGlassShowcase(key: ValueKey('glass'));
+      case 2:
+        return const ColorsShowcase(key: ValueKey('colors'));
+      case 3:
+        return const TypographyShowcase(key: ValueKey('typography'));
+      case 4:
+        return const SettingsShowcase(key: ValueKey('settings'));
+      default:
+        return const ComponentsShowcase(key: ValueKey('components'));
+    }
+  }
+}
+
+class LiquidGlassShowcase extends StatelessWidget {
+  const LiquidGlassShowcase({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(
+            title: 'Glass Effects',
+            subtitle: 'Beautiful glass morphism with native Flutter',
+            icon: Icons.auto_awesome_rounded,
+          ),
+          const SizedBox(height: 32),
+          Container(
+            height: 300,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  context.colorScheme.primary.withOpacity(0.3),
+                  context.colorScheme.secondary.withOpacity(0.3),
+                  context.colorScheme.tertiary.withOpacity(0.3),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _GlassBackgroundPainter(context.colorScheme),
+                  ),
+                ),
+                Center(
+                  child: _GlassMorphismContainer(
+                    blur: 10,
+                    opacity: 0.2,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      child: Text(
+                        'GLASS',
+                        style: context.textTheme.displayLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withOpacity(0.3),
+                              offset: const Offset(0, 2),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
+          _SectionHeader(
+            title: 'Glass Cards',
+            subtitle: 'Different glass morphism styles',
+            icon: Icons.credit_card_rounded,
+          ),
+          const SizedBox(height: 24),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: ResponsiveUtils.getGridColumns(context,
+                compact: 1, medium: 2, expanded: 3),
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 1.2,
+            children: [
+              _buildGlassCard(
+                context,
+                'Subtle Glass',
+                'Minimal blur effect',
+                Icons.opacity_rounded,
+                blur: 5,
+                opacity: 0.1,
+              ),
+              _buildGlassCard(
+                context,
+                'Medium Glass',
+                'Balanced transparency',
+                Icons.blur_on_rounded,
+                blur: 10,
+                opacity: 0.2,
+              ),
+              _buildGlassCard(
+                context,
+                'Strong Glass',
+                'Heavy blur effect',
+                Icons.auto_awesome_rounded,
+                blur: 20,
+                opacity: 0.3,
+              ),
+              _buildGlassCard(
+                context,
+                'Colorful Glass',
+                'Tinted glass effect',
+                Icons.palette_rounded,
+                blur: 15,
+                opacity: 0.25,
+                tintColor: context.colorScheme.primary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+          _SectionHeader(
+            title: 'Interactive Glass',
+            subtitle: 'Adjustable glass effects',
+            icon: Icons.tune_rounded,
+          ),
+          const SizedBox(height: 24),
+          _InteractiveGlassDemo(),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlassCard(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon, {
+    required double blur,
+    required double opacity,
+    Color? tintColor,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            context.colorScheme.primary.withOpacity(0.2),
+            context.colorScheme.secondary.withOpacity(0.2),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: _GlassMorphismContainer(
+        blur: blur,
+        opacity: opacity,
+        tintColor: tintColor,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: Colors.white,
+                size: 40,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: context.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: context.textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withOpacity(0.8),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InteractiveGlassDemo extends StatefulWidget {
+  @override
+  _InteractiveGlassDemoState createState() => _InteractiveGlassDemoState();
+}
+
+class _InteractiveGlassDemoState extends State<_InteractiveGlassDemo> {
+  double _blur = 10.0;
+  double _opacity = 0.2;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 400,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            context.colorScheme.primaryContainer,
+            context.colorScheme.secondaryContainer,
+            context.colorScheme.tertiaryContainer,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Text(
+                  'Glass Effect Controls',
+                  style: context.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Blur: ${_blur.round()}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          Slider(
+                            value: _blur,
+                            min: 0,
+                            max: 30,
+                            divisions: 30,
+                            onChanged: (value) {
+                              setState(() => _blur = value);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Opacity: ${(_opacity * 100).round()}%',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          Slider(
+                            value: _opacity,
+                            min: 0.05,
+                            max: 0.5,
+                            divisions: 45,
+                            onChanged: (value) {
+                              setState(() => _opacity = value);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: _GlassMorphismContainer(
+                blur: _blur,
+                opacity: _opacity,
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.auto_awesome_rounded,
+                        color: Colors.white,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'INTERACTIVE',
+                        style: context.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Adjust the sliders above',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlassMorphismContainer extends StatelessWidget {
+  const _GlassMorphismContainer({
+    required this.child,
+    required this.blur,
+    required this.opacity,
+    this.tintColor,
+  });
+
+  final Widget child;
+  final double blur;
+  final double opacity;
+  final Color? tintColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          decoration: BoxDecoration(
+            color: (tintColor ?? Colors.white).withOpacity(opacity),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassBackgroundPainter extends CustomPainter {
+  final ColorScheme colorScheme;
+
+  _GlassBackgroundPainter(this.colorScheme);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = colorScheme.outline.withOpacity(0.1);
+
+    for (int i = 0; i < 8; i++) {
+      final x = (i * size.width / 7) % size.width;
+      final y = (i * size.height / 5) % size.height;
+      canvas.drawCircle(
+        Offset(x, y),
+        20 + (i * 5),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class ComponentsShowcase extends StatelessWidget {
@@ -557,8 +963,6 @@ class SettingsShowcase extends StatelessWidget {
     );
   }
 }
-
-// Helper Widgets
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
